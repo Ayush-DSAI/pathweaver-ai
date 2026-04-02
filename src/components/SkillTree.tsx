@@ -5,7 +5,7 @@ import type { Edge, Node, NodeMouseHandler } from '@xyflow/react';
 
 import CustomSkillNode from '@/components/CustomSkillNode';
 import type { CustomSkillNodeData } from '@/components/CustomSkillNode';
-import usePlayerStore from '@/store/playerStore';
+import { usePlayerStore } from '@/store/playerStore';
 
 const nodeTypes = {
   custom: CustomSkillNode,

@@ -1,11 +1,29 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Skull, X, Users, Trophy, Target, CheckCircle2, Circle } from 'lucide-react';
-import usePlayerStore from '@/store/playerStore';
+import { Skull, X, Users, Trophy, Target, CheckCircle2, Circle, Terminal } from 'lucide-react';
+import { usePlayerStore } from '@/store/playerStore';
+import { toast } from 'sonner';
 
-const BossDrawer = () => {
-  const { isDrawerOpen, setDrawerOpen, currentChallenge } = usePlayerStore();
+export default function BossDrawer() {
+  const { isDrawerOpen, setDrawerOpen, currentChallenge, updateStat } = usePlayerStore();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // 🔥 YAHI HAI WO MAGIC FUNCTION JO GAYAB THA 🔥
+  const handleChallenge = async () => {
+    setIsGenerating(true);
+    
+    // Simulate AI Delay (2 seconds)
+    setTimeout(() => {
+      setIsGenerating(false);
+      updateStat('int', 10); // Sidebar ka bar badhayega
+      
+      toast.success('CHALLENGE CLEARED!', {
+        description: 'Mistral AI logic defeated. +10 INT Gained.',
+      });
+    }, 2000);
+  };
 
   return (
     <AnimatePresence>
@@ -15,7 +33,7 @@ const BossDrawer = () => {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 300, opacity: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="fixed right-0 top-24 bottom-0 w-96 glass border-l border-white/10 z-40 p-8 flex flex-col gap-10"
+          className="fixed right-0 top-24 bottom-0 w-96 glass border-l border-white/10 z-40 p-8 flex flex-col gap-10 bg-zinc-950 shadow-2xl overflow-y-auto"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -39,32 +57,12 @@ const BossDrawer = () => {
             <p className="text-gray-400 text-lg leading-relaxed">
               Master the fundamentals of predictive modeling with {currentChallenge?.toLowerCase() || 'linear regression'}.
             </p>
-        <div className="flex gap-2">
-          {['regression', 'supervised', 'boss'].map((tag) => (
-            <span key={tag} className="text-[10px] font-bold text-[#8b5cf6] bg-[#8b5cf6]/20 px-3 py-1 rounded-full uppercase tracking-widest border border-[#8b5cf6]/30">
-              {tag}
-            </span>
-          ))}
-        </div>
-      </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-3">
-              <div className="flex items-center gap-2 text-gray-400">
-                <Users className="w-4 h-4" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Completed by</span>
-              </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black text-white">12.4K</span>
-                <span className="text-xs text-gray-500 font-medium">learners</span>
-              </div>
-            </div>
-            <div className="bg-white/5 border border-white/10 p-5 rounded-2xl flex flex-col gap-3">
-              <div className="flex items-center gap-2 text-gray-400">
-                <Trophy className="w-4 h-4" />
-                <span className="text-[10px] font-bold uppercase tracking-widest">Success Rate</span>
-              </div>
-              <span className="text-2xl font-black text-green-500 tracking-tight">78%</span>
+            <div className="flex gap-2">
+              {['regression', 'supervised', 'boss'].map((tag) => (
+                <span key={tag} className="text-[10px] font-bold text-[#8b5cf6] bg-[#8b5cf6]/20 px-3 py-1 rounded-full uppercase tracking-widest border border-[#8b5cf6]/30">
+                  {tag}
+                </span>
+              ))}
             </div>
           </div>
 
@@ -81,31 +79,28 @@ const BossDrawer = () => {
             <p className="text-sm text-gray-400 leading-relaxed relative z-10">
               Implement a {currentChallenge?.toLowerCase() || 'linear regression'} model from scratch using only NumPy, then compare its performance against scikit-learn&apos;s implementation.
             </p>
+
+            {/* 🔥 YAHAN CLICK HOGA TOH CHALEGA MAGIC 🔥 */}
+            <button 
+              onClick={handleChallenge}
+              disabled={isGenerating}
+              className="mt-4 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 flex items-center justify-center gap-2 rounded-xl transition-all shadow-[0_0_15px_rgba(124,58,237,0.4)] disabled:opacity-50 relative z-10"
+            >
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  INTERROGATING AI...
+                </>
+              ) : (
+                <>
+                  <Terminal size={16} /> START CHALLENGE
+                </>
+              )}
+            </button>
           </div>
 
-          <div className="mt-auto flex flex-col gap-6">
-            <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest">
-              <span className="text-gray-400">Prerequisites</span>
-              <span className="text-green-500">1/2 Complete</span>
-            </div>
-            <div className="h-2 bg-white/10 rounded-full overflow-hidden border border-white/5">
-              <div className="h-full bg-green-500 w-1/2 rounded-full accent-glow" />
-            </div>
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3 text-sm font-bold text-white transition-all hover:translate-x-1">
-                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <span>Data Preprocessing</span>
-              </div>
-              <div className="flex items-center gap-3 text-sm font-bold text-gray-500 transition-all hover:translate-x-1">
-                <Circle className="w-5 h-5" />
-                <span>Statistical Foundations</span>
-              </div>
-            </div>
-          </div>
         </motion.aside>
       )}
     </AnimatePresence>
   );
-};
-
-export default BossDrawer;
+}
