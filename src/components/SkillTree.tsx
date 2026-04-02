@@ -1,10 +1,11 @@
 'use client';
 
 import { Background, BackgroundVariant, Controls, ReactFlow } from '@xyflow/react';
-import type { Edge, Node } from '@xyflow/react';
+import type { Edge, Node, NodeMouseHandler } from '@xyflow/react';
 
 import CustomSkillNode from '@/components/CustomSkillNode';
 import type { CustomSkillNodeData } from '@/components/CustomSkillNode';
+import usePlayerStore from '@/store/playerStore';
 
 const nodeTypes = {
   custom: CustomSkillNode,
@@ -62,12 +63,23 @@ const initialEdges: Edge[] = [
 ];
 
 export default function SkillTree() {
+  const { setDrawerOpen, setCurrentChallenge } = usePlayerStore();
+
+  const onNodeClick: NodeMouseHandler = (_, node) => {
+    const customNode = node as Node<CustomSkillNodeData, 'custom'>;
+    if (customNode.data.type === 'boss' || customNode.data.type === 'boss node') {
+      setCurrentChallenge(customNode.data.label);
+      setDrawerOpen(true);
+    }
+  };
+
   return (
     <div className="w-full h-full bg-[#05050a]">
       <ReactFlow
         nodes={initialNodes}
         edges={initialEdges}
         nodeTypes={nodeTypes}
+        onNodeClick={onNodeClick}
         fitView
         className="h-full w-full bg-[#05050a]"
       >
