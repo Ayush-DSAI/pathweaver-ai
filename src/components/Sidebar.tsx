@@ -2,13 +2,11 @@
 
 import { usePlayerStore } from '@/store/playerStore';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Map, Crosshair, Box, Trophy } from 'lucide-react';
+import { LayoutDashboard, Map, Crosshair, Box, Trophy, Plus } from 'lucide-react';
 
 export default function Sidebar() {
-  // 1. Store se Live Stats nikal lo
-  const { hp, def, int } = usePlayerStore();
+  const { hp, def, int, toggleQuestModal } = usePlayerStore();
 
-  // 2. Stats array for easy mapping
   const stats = [
     { name: 'INT', value: int, color: 'bg-violet-500', shadow: 'shadow-violet-500/50' },
     { name: 'HP', value: hp, color: 'bg-red-500', shadow: 'shadow-red-500/50' },
@@ -42,6 +40,16 @@ export default function Sidebar() {
             <span className="hidden lg:block text-sm font-medium">Achievements</span>
           </button>
         </nav>
+
+        {/* NEW QUEST trigger */}
+        <button
+          id="new-quest-btn"
+          onClick={toggleQuestModal}
+          className="mt-2 w-full flex items-center justify-center lg:justify-start gap-2 rounded-xl border border-cyan-500/50 bg-cyan-500/5 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-cyan-400 transition-all hover:bg-cyan-500/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]"
+        >
+          <Plus className="w-4 h-4" />
+          <span className="hidden lg:block">New Quest</span>
+        </button>
       </div>
 
       {/* Bottom Section: Live Player Stats (Ayush's Requirement) */}

@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import type { Edge, Node } from '@xyflow/react';
+import type { CustomSkillNodeData } from '@/components/CustomSkillNode';
+import { useSkillStore } from '@/store/useSkillStore';
 
 // 1. Node Data Interface (Jo map par click hoga)
 export interface NodeData {
@@ -17,6 +20,7 @@ export interface PlayerState {
   // State & AI Data
   activeNode: NodeData | null;
   isDrawerOpen: boolean;
+  isQuestModalOpen: boolean;
   currentChallenge: string | null; 
   activeNodeData: any | null;
 
@@ -26,6 +30,8 @@ export interface PlayerState {
   setDrawerOpen: (open: boolean) => void;
   setCurrentChallenge: (challenge: string | null) => void;
   setActiveNodeData: (data: any) => void;
+  toggleQuestModal: () => void;
+  setTreeData: (nodes: Node<CustomSkillNodeData, 'custom'>[], edges: Edge[]) => void;
 }
 
 // 3. Store Implementation
@@ -36,6 +42,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   int: 78,
   activeNode: null,
   isDrawerOpen: false,
+  isQuestModalOpen: false,
   currentChallenge: null,
   activeNodeData: null,
 
@@ -46,4 +53,9 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setDrawerOpen: (open) => set({ isDrawerOpen: open }),
   setCurrentChallenge: (challenge) => set({ currentChallenge: challenge }),
   setActiveNodeData: (data) => set({ activeNodeData: data }),
+  toggleQuestModal: () => set((state) => ({ isQuestModalOpen: !state.isQuestModalOpen })),
+  setTreeData: (nodes, edges) => {
+    useSkillStore.getState().setNodes(nodes);
+    useSkillStore.getState().setEdges(edges);
+  },
 }));
