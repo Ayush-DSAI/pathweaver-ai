@@ -6,6 +6,8 @@ import type { Node, NodeProps } from '@xyflow/react';
 import { Handle, Position } from '@xyflow/react';
 import { motion, type Variants } from 'framer-motion';
 import { Lock, Check } from 'lucide-react';
+import { usePlayerStore } from '@/store/playerStore';
+import { getLootDrops } from '@/lib/exa';
 
 // ─── Type definitions ──────────────────────────────────────────────────────────
 
@@ -105,6 +107,7 @@ const inProgressPulse: Variants = {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function CustomSkillNode({ data, isConnectable }: NodeProps<CustomSkillFlowNode>) {
+  const { setDrawerOpen, setCurrentChallenge, setActiveNodeData } = usePlayerStore();
   const status: SkillNodeStatus = data.status ?? 'unlocked';
   const canonicalType = canonicalTypeByType[data.type];
   const variant = variantStyleByType[canonicalType];
@@ -136,7 +139,14 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
 
   return (
     <motion.div
-      className="relative w-28 h-28 flex items-center justify-center"
+      className="relative w-28 h-28 flex items-center justify-center cursor-pointer"
+      onClick={async () => {
+        if (isLocked) return;
+        setCurrentChallenge(data.label);
+        setDrawerOpen(true);
+        const results = await getLootDrops(data.label, []);
+        setActiveNodeData(results);
+      }}
       style={{
         filter: outerFilter,
         pointerEvents: isLocked ? 'none' : 'auto',

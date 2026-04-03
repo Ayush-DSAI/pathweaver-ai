@@ -21,6 +21,7 @@ export interface PlayerState {
   activeNode: NodeData | null;
   isDrawerOpen: boolean;
   isQuestModalOpen: boolean;
+  isLevelUpVisible: boolean;
   currentChallenge: string | null; 
   activeNodeData: any | null;
 
@@ -31,6 +32,7 @@ export interface PlayerState {
   setCurrentChallenge: (challenge: string | null) => void;
   setActiveNodeData: (data: any) => void;
   toggleQuestModal: () => void;
+  triggerLevelUp: () => void;
   setTreeData: (nodes: Node<CustomSkillNodeData, 'custom'>[], edges: Edge[]) => void;
 }
 
@@ -43,6 +45,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   activeNode: null,
   isDrawerOpen: false,
   isQuestModalOpen: false,
+  isLevelUpVisible: false,
   currentChallenge: null,
   activeNodeData: null,
 
@@ -54,6 +57,10 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setCurrentChallenge: (challenge) => set({ currentChallenge: challenge }),
   setActiveNodeData: (data) => set({ activeNodeData: data }),
   toggleQuestModal: () => set((state) => ({ isQuestModalOpen: !state.isQuestModalOpen })),
+  triggerLevelUp: () => {
+    set({ isLevelUpVisible: true });
+    setTimeout(() => set({ isLevelUpVisible: false }), 2500);
+  },
   setTreeData: (nodes, edges) => {
     useSkillStore.getState().setNodes(nodes);
     useSkillStore.getState().setEdges(edges);
