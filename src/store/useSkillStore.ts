@@ -30,6 +30,8 @@ export interface SkillStoreState {
   setNodes: (nodes: Node<CustomSkillNodeData, 'custom'>[]) => void;
   /** Replace the full edge list */
   setEdges: (edges: Edge[]) => void;
+  /** Atomically replace both nodes and edges (used by the AI tree generator) */
+  setTree: (nodes: Node<CustomSkillNodeData, 'custom'>[], edges: Edge[]) => void;
 
   /**
    * Open a Supabase Realtime channel that listens for UPDATE events on
@@ -48,6 +50,7 @@ export const useSkillStore = create<SkillStoreState>((set, get) => ({
 
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
+  setTree: (newNodes, newEdges) => set({ nodes: newNodes, edges: newEdges }),
 
   subscribeToSkillUpdates: () => {
     const channel: RealtimeChannel = supabase
