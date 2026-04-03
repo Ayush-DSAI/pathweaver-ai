@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import CustomSkillNode from '@/components/CustomSkillNode';
 import type { CustomSkillNodeData } from '@/components/CustomSkillNode';
 import { usePlayerStore } from '@/store/playerStore';
+import { getLootDrops } from '@/lib/exa';
 
 const nodeTypes = {
   custom: CustomSkillNode,
@@ -64,7 +65,7 @@ const initialEdges: Edge[] = [
 ];
 
 export default function SkillTree() {
-  const { setDrawerOpen, setCurrentChallenge } = usePlayerStore();
+  const { setDrawerOpen, setCurrentChallenge, setActiveNodeData } = usePlayerStore();
 
   // Locked the static data into proper React Flow state so it doesn't force re-renders
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -76,13 +77,17 @@ export default function SkillTree() {
     // The empty brackets below act as emergency brakes to stop the infinite loop.
   }, []);
 
-  const onNodeClick: NodeMouseHandler = (_, node) => {
-    const customNode = node as Node<CustomSkillNodeData, 'custom'>;
-    if (customNode.data.type === 'boss' || customNode.data.type === 'boss node') {
-      setCurrentChallenge(customNode.data.label);
-      setDrawerOpen(true);
-    }
-  };
+  const onNodeClick: NodeMouseHandler = async (_, node) => {
+      const customNode = node as Node<CustomSkillNodeData, 'custom'>;
+      if (customNode.data.type === 'boss') {
+        setDrawerOpen(true);
+        setCurrentChallenge(customNode.data.label);
+
+        // Boom! Using the real function name and passing the empty tags array
+        const results = await getLootDrops(customNode.data.label, []); 
+        setActiveNodeData(results);
+      }
+    };
 
   return (
     <div className="h-full w-full">
