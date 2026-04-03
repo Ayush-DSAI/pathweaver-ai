@@ -152,7 +152,7 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
         type="target"
         position={Position.Top}
         isConnectable={isConnectable}
-        className="!w-3 !h-3 !bg-white/80 !border-2 !border-black/60"
+        className="opacity-0"
       />
 
       {/* Main visual container — animated for status transitions */}
@@ -219,7 +219,7 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
         type="source"
         position={Position.Bottom}
         isConnectable={isConnectable}
-        className="!w-3 !h-3 !bg-white/80 !border-2 !border-black/60"
+        className="opacity-0"
       />
     </motion.div>
   );
