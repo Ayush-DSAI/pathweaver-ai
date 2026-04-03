@@ -7,6 +7,7 @@ import BossDrawer from '@/components/BossDrawer';
 import QuestModal from '@/components/QuestModal';
 import LevelUpOverlay from '@/components/LevelUpOverlay';
 import { Layers, Maximize2, Search } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const legendItems = [
   {
@@ -31,14 +32,55 @@ export default function Home() {
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#0a0a0c] font-sans text-white selection:bg-[#8b5cf6]/30 flex">
       {/* Background VFX */}
-      <div
-        className="pointer-events-none absolute inset-0 z-0 opacity-20"
-        style={{
-          backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.05) 1px, transparent 0)',
-          backgroundSize: '40px 40px',
-        }}
-      />
-      <div className="pointer-events-none absolute top-1/2 left-1/2 h-[1000px] w-[1000px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#8b5cf6]/5 blur-[150px]" />
+      {/* ── Background VFX Layers ────────────────────────────────────────── */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#050507]">
+        {/* Layer 1: Deep Pulse Gradient */}
+        <motion.div
+          animate={{
+            scale: [1, 1.1, 1],
+            opacity: [0.1, 0.15, 0.1],
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
+          className="absolute inset-0 bg-gradient-radial from-violet-900/20 via-transparent to-transparent blur-[120px]"
+        />
+
+        {/* Layer 2: Scrolling Cyber-Grid */}
+        <motion.div
+          animate={{
+            backgroundPosition: ['0px 0px', '40px 40px'],
+          }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'linear' }}
+          className="absolute inset-0 opacity-[0.07]"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px',
+          }}
+        />
+
+        {/* Layer 3: Vertical Data Streams */}
+        <div className="absolute inset-0 opacity-[0.05]">
+          {[...Array(6)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ top: '-100%', left: `${15 + i * 15}%` }}
+              animate={{ top: '100%' }}
+              transition={{
+                duration: 8 + i * 2,
+                repeat: Infinity,
+                delay: i * 3,
+                ease: 'linear',
+              }}
+              className="absolute w-[1px] h-32 bg-gradient-to-b from-transparent via-violet-400 to-transparent"
+            />
+          ))}
+        </div>
+
+        {/* Layer 4: Ambient Glow Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+      </div>
 
       <Sidebar />
       

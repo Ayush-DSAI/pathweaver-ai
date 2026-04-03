@@ -16,6 +16,7 @@ export interface PlayerState {
   hp: number;
   def: number;
   int: number;
+  totalLoot: number;
 
   // State & AI Data
   activeNode: NodeData | null;
@@ -32,7 +33,8 @@ export interface PlayerState {
   setCurrentChallenge: (challenge: string | null) => void;
   setActiveNodeData: (data: any) => void;
   toggleQuestModal: () => void;
-  triggerLevelUp: () => void;
+   triggerLevelUp: () => void;
+  updateLoot: (amount: number) => void;
   setTreeData: (nodes: Node<CustomSkillNodeData, 'custom'>[], edges: Edge[]) => void;
 }
 
@@ -42,6 +44,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   hp: 85,
   def: 42,
   int: 78,
+  totalLoot: 2450,
   activeNode: null,
   isDrawerOpen: false,
   isQuestModalOpen: false,
@@ -59,8 +62,9 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   toggleQuestModal: () => set((state) => ({ isQuestModalOpen: !state.isQuestModalOpen })),
   triggerLevelUp: () => {
     set({ isLevelUpVisible: true });
-    setTimeout(() => set({ isLevelUpVisible: false }), 2500);
+     setTimeout(() => set({ isLevelUpVisible: false }), 2500);
   },
+  updateLoot: (amount) => set((state) => ({ totalLoot: state.totalLoot + amount })),
   setTreeData: (nodes, edges) => {
     useSkillStore.getState().setNodes(nodes);
     useSkillStore.getState().setEdges(edges);
