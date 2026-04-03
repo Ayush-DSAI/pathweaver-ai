@@ -26,6 +26,7 @@ export interface PlayerState {
   isLevelUpVisible: boolean;
   currentChallenge: string | null; 
   currentBoss: string | null;
+  currentBossId: string | null;
   activeNodeData: any | null;
 
   // Actions
@@ -34,6 +35,7 @@ export interface PlayerState {
   setDrawerOpen: (open: boolean) => void;
   setCurrentChallenge: (challenge: string | null) => void;
   setCurrentBoss: (boss: string | null) => void;
+  setCurrentBossId: (id: string | null) => void;
   setBossArenaOpen: (open: boolean) => void;
   setActiveNodeData: (data: any) => void;
   toggleQuestModal: () => void;
@@ -59,6 +61,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   isLevelUpVisible: false,
   currentChallenge: null,
   currentBoss: null,
+  currentBossId: null,
   activeNodeData: null,
 
   // Functions
@@ -69,6 +72,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setBossArenaOpen: (open) => set({ isBossArenaOpen: open }),
   setCurrentChallenge: (challenge) => set({ currentChallenge: challenge }),
   setCurrentBoss: (boss) => set({ currentBoss: boss }),
+  setCurrentBossId: (id) => set({ currentBossId: id }),
   setActiveNodeData: (data) => set({ activeNodeData: data }),
   toggleQuestModal: () => set((state) => ({ isQuestModalOpen: !state.isQuestModalOpen })),
   triggerLevelUp: () => {

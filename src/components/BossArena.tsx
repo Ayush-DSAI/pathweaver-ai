@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlayerStore } from '@/store/playerStore';
+import { useSkillStore } from '@/store/useSkillStore';
 import { Heart, Coins, Shield, Zap, X, Trophy, Skull } from 'lucide-react';
 
 interface MockQuestion {
@@ -52,8 +53,11 @@ export default function BossArena() {
     takeDamage, 
     heal, 
     addLoot, 
-    setBossArenaOpen 
+    setBossArenaOpen,
+    currentBossId
   } = usePlayerStore();
+
+  const { unlockNextZone } = useSkillStore();
 
   const [competency, setCompetency] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -71,8 +75,11 @@ export default function BossArena() {
       setGameStatus('victory');
       addLoot(500);
       heal(30);
+      if (currentBossId) {
+        unlockNextZone(currentBossId);
+      }
     }
-  }, [hp, competency, addLoot, heal]);
+  }, [hp, competency, addLoot, heal, currentBossId, unlockNextZone]);
 
   const handleAnswer = (index: number) => {
     if (gameStatus !== 'playing') return;

@@ -107,13 +107,14 @@ const inProgressPulse: Variants = {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export default function CustomSkillNode({ data, isConnectable }: NodeProps<CustomSkillFlowNode>) {
+export default function CustomSkillNode({ id, data, isConnectable }: NodeProps<CustomSkillFlowNode>) {
   const { 
     setDrawerOpen, 
     setCurrentChallenge, 
     setActiveNodeData,
     setBossArenaOpen,
-    setCurrentBoss
+    setCurrentBoss,
+    setCurrentBossId
   } = usePlayerStore();
   const status: SkillNodeStatus = data.status ?? 'unlocked';
   const canonicalType = canonicalTypeByType[data.type];
@@ -152,6 +153,7 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
 
         if (canonicalType === 'boss') {
           setCurrentBoss(data.label);
+          setCurrentBossId(id);
           setBossArenaOpen(true);
         } else {
           setCurrentChallenge(data.label);

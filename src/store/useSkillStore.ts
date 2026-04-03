@@ -39,6 +39,13 @@ export interface SkillStoreState {
   setCurrentQuestName: (name: string) => void;
 
   /**
+   * Automates Fog of War progression.
+   * 1. Marks the defeated boss as 'completed'
+   * 2. Unlocks subsequent nodes until the next Boss or Milestone is reached.
+   */
+  unlockNextZone: (defeatedBossId: string) => void;
+
+  /**
    * Open a Supabase Realtime channel that listens for UPDATE events on
    * the `skill_nodes` table. When a row changes (e.g. status → 'completed')
    * the corresponding React Flow node in state is patched immediately.
@@ -58,6 +65,40 @@ export const useSkillStore = create<SkillStoreState>((set, get) => ({
   setEdges: (edges) => set({ edges }),
   setTree: (newNodes, newEdges) => set({ nodes: newNodes, edges: newEdges }),
   setCurrentQuestName: (name) => set({ currentQuestName: name }),
+
+  unlockNextZone: (defeatedBossId: string) => {
+    const { nodes } = get();
+    const bossIndex = nodes.findIndex((n) => n.id === defeatedBossId);
+    if (bossIndex === -1) return;
+
+    // Create a shallow copy for immutable update
+    const nextNodes = [...nodes];
+
+    // 1. Mark current boss as completed
+    nextNodes[bossIndex] = {
+      ...nextNodes[bossIndex],
+      data: { ...nextNodes[bossIndex].data, status: 'completed' },
+    };
+
+    // 2. Unlock subsequent nodes until next Boss/Milestone
+    for (let i = bossIndex + 1; i < nextNodes.length; i++) {
+      const node = nextNodes[i];
+      
+      // Update this node to unlocked
+      nextNodes[i] = {
+        ...nextNodes[i],
+        data: { ...nextNodes[i].data, status: 'unlocked' },
+      };
+
+      // Check if we should stop revealing (Fog of War break)
+      const type = node.data?.type;
+      if (type === 'boss' || type === 'milestone' || type === 'boss node' || type === 'milestone node') {
+        break;
+      }
+    }
+
+    set({ nodes: nextNodes });
+  },
 
   subscribeToSkillUpdates: () => {
     const channel: RealtimeChannel = supabase
