@@ -4,6 +4,7 @@ import SkillTree from '@/components/SkillTree';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import BossDrawer from '@/components/BossDrawer';
+import QuestModal from '@/components/QuestModal';
 import { Layers, Maximize2, Search } from 'lucide-react';
 
 const legendItems = [
@@ -40,6 +41,7 @@ export default function Home() {
       <Sidebar />
       <Header />
       <BossDrawer />
+      <QuestModal />
 
       <div className="relative z-10 h-screen pl-20 pr-96 pt-24">
         <div id="map-canvas" className="relative h-full w-full overflow-hidden rounded-[2rem]">
