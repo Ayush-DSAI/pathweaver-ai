@@ -81,12 +81,8 @@ export default function QuestModal() {
     }, 200);
 
     try {
-<<<<<<< HEAD
-      const response = await fetch('/api/generate-tree', {
-=======
       const response = await fetch('https://exwkezfimdfvmaqmdruo.supabase.co/functions/v1/generate-tree', {
         // ... rest of the code stays the same
->>>>>>> 4c6b6307533389663c7ca5245caa044dcd86527c
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ goal: goal.trim() }),
