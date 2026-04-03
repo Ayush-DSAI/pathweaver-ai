@@ -16,6 +16,7 @@ export interface SkillNodeRow {
   type: string;
   position_x: number;
   position_y: number;
+  search_query?: string;
   [key: string]: unknown; // allow extra columns without breaking types
 }
 
@@ -25,6 +26,8 @@ export interface SkillStoreState {
   nodes: Node<CustomSkillNodeData, 'custom'>[];
   /** React Flow edges */
   edges: Edge[];
+  /** The name of the currently active quest/topic */
+  currentQuestName: string;
 
   /** Replace the full node list */
   setNodes: (nodes: Node<CustomSkillNodeData, 'custom'>[]) => void;
@@ -32,6 +35,15 @@ export interface SkillStoreState {
   setEdges: (edges: Edge[]) => void;
   /** Atomically replace both nodes and edges (used by the AI tree generator) */
   setTree: (nodes: Node<CustomSkillNodeData, 'custom'>[], edges: Edge[]) => void;
+  /** Update the active quest topic name */
+  setCurrentQuestName: (name: string) => void;
+
+  /**
+   * Automates Fog of War progression.
+   * 1. Marks the defeated boss as 'completed'
+   * 2. Unlocks subsequent nodes until the next Boss or Milestone is reached.
+   */
+  unlockNextZone: (defeatedBossId: string) => void;
 
   /**
    * Open a Supabase Realtime channel that listens for UPDATE events on
@@ -47,10 +59,46 @@ export interface SkillStoreState {
 export const useSkillStore = create<SkillStoreState>((set, get) => ({
   nodes: [],
   edges: [],
+  currentQuestName: 'New Expedition',
 
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   setTree: (newNodes, newEdges) => set({ nodes: newNodes, edges: newEdges }),
+  setCurrentQuestName: (name) => set({ currentQuestName: name }),
+
+  unlockNextZone: (defeatedBossId: string) => {
+    const { nodes } = get();
+    const bossIndex = nodes.findIndex((n) => n.id === defeatedBossId);
+    if (bossIndex === -1) return;
+
+    // Create a shallow copy for immutable update
+    const nextNodes = [...nodes];
+
+    // 1. Mark current boss as completed
+    nextNodes[bossIndex] = {
+      ...nextNodes[bossIndex],
+      data: { ...nextNodes[bossIndex].data, status: 'completed' },
+    };
+
+    // 2. Unlock subsequent nodes until next Boss/Milestone
+    for (let i = bossIndex + 1; i < nextNodes.length; i++) {
+      const node = nextNodes[i];
+      
+      // Update this node to unlocked
+      nextNodes[i] = {
+        ...nextNodes[i],
+        data: { ...nextNodes[i].data, status: 'unlocked' },
+      };
+
+      // Check if we should stop revealing (Fog of War break)
+      const type = node.data?.type;
+      if (type === 'boss' || type === 'milestone' || type === 'boss node' || type === 'milestone node') {
+        break;
+      }
+    }
+
+    set({ nodes: nextNodes });
+  },
 
   subscribeToSkillUpdates: () => {
     const channel: RealtimeChannel = supabase
@@ -77,6 +125,7 @@ export const useSkillStore = create<SkillStoreState>((set, get) => ({
                   label: updatedRow.label,
                   type: updatedRow.type as CustomSkillNodeData['type'],
                   status: updatedRow.status,
+                  searchQuery: updatedRow.search_query,
                 },
                 // Optionally sync position if the DB drives layout
                 position: {

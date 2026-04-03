@@ -1,236 +1,180 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Skull, X, Terminal } from 'lucide-react';
+import { X, ExternalLink, Sparkles } from 'lucide-react';
 import { usePlayerStore } from '@/store/playerStore';
-import { toast } from 'sonner';
-
-// ─── Skeleton fragment component ───────────────────────────────────────────────
-
-interface SkeletonFragmentProps {
-  /** Tailwind width / height classes */
-  className: string;
-  /** Delay offset for staggered pulse (seconds) */
-  delay?: number;
-  /** Optional border-radius override */
-  rounded?: string;
-}
-
-function SkeletonFragment({ className, delay = 0, rounded = 'rounded-lg' }: SkeletonFragmentProps) {
-  return (
-    <motion.div
-      className={[
-        className,
-        rounded,
-        // Base dark glass with neon-tinted gradient
-        'bg-gradient-to-r from-slate-800/50 via-cyan-900/20 to-slate-800/50',
-        'border border-cyan-500/10',
-      ].join(' ')}
-      animate={{ opacity: [0.3, 0.6, 0.3] }}
-      transition={{
-        repeat: Infinity,
-        duration: 1.5,
-        ease: 'easeInOut',
-        delay,
-      }}
-    />
-  );
-}
-
-// ─── Glitch / flicker keyframes (injected once via <style>) ────────────────────
-
-const glitchKeyframes = `
-@keyframes glitch-flicker {
-  0%, 100% { opacity: 0.9; }
-  10%      { opacity: 0.4; }
-  12%      { opacity: 0.9; }
-  20%      { opacity: 0.75; }
-  22%      { opacity: 0.9; }
-  50%      { opacity: 0.85; }
-  52%      { opacity: 0.3; }
-  54%      { opacity: 0.9; }
-  70%      { opacity: 0.7; }
-  72%      { opacity: 0.9; }
-  90%      { opacity: 0.5; }
-  92%      { opacity: 0.9; }
-}
-`;
-
-// ─── Cyberpunk Skeleton Loader ─────────────────────────────────────────────────
-
-function CyberpunkSkeleton() {
-  return (
-    <motion.div
-      className="flex flex-col gap-6 flex-1"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      {/* ── Block 1: Title skeleton ─────────────────────────────── */}
-      <div className="flex flex-col gap-3">
-        <SkeletonFragment className="h-7 w-3/5" delay={0} />
-        <SkeletonFragment className="h-4 w-4/5" delay={0.15} />
-      </div>
-
-      {/* ── Block 2: Main content / Challenge area ──────────────── */}
-      <SkeletonFragment className="h-44 w-full" delay={0.3} rounded="rounded-2xl" />
-
-      {/* ── Block 3: Metadata / Tag pills ───────────────────────── */}
-      <div className="flex gap-3">
-        <SkeletonFragment className="h-7 w-24" delay={0.45} rounded="rounded-full" />
-        <SkeletonFragment className="h-7 w-20" delay={0.55} rounded="rounded-full" />
-      </div>
-
-      {/* ── "SYSTEM DECODING..." overlay ────────────────────────── */}
-      <div className="mt-auto pt-6 flex items-center justify-center gap-2">
-        {/* Inject the glitch keyframes */}
-        <style>{glitchKeyframes}</style>
-
-        <span
-          className="text-[11px] font-mono font-bold tracking-[0.25em] uppercase text-cyan-400/80"
-          style={{ animation: 'glitch-flicker 2.2s steps(1) infinite' }}
-        >
-          [ SYSTEM DECODING... ]
-        </span>
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── Main component ────────────────────────────────────────────────────────────
+import { useState, useEffect } from 'react';
 
 export default function BossDrawer() {
-  const { isDrawerOpen, setDrawerOpen, currentChallenge, updateStat } = usePlayerStore();
-  const [isGenerating, setIsGenerating] = useState(false);
+  const { isDrawerOpen, setDrawerOpen, currentChallenge, activeNodeData } = usePlayerStore();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Simulate a data-fetch loading state whenever the drawer opens
+  // Simulate loading state for UX when challenge changes or drawer opens
   useEffect(() => {
     if (isDrawerOpen) {
       setIsLoading(true);
-      const timer = setTimeout(() => setIsLoading(false), 2200);
+      const timer = setTimeout(() => setIsLoading(false), 1500);
       return () => clearTimeout(timer);
     }
   }, [isDrawerOpen, currentChallenge]);
 
-  const handleChallenge = async () => {
-    setIsGenerating(true);
-
-    // Simulate AI delay (2 seconds)
-    setTimeout(() => {
-      setIsGenerating(false);
-      updateStat('int', 10);
-
-      toast.success('CHALLENGE CLEARED!', {
-        description: 'Mistral AI logic defeated. +10 INT Gained.',
-      });
-    }, 2000);
-  };
-
   return (
     <AnimatePresence>
       {isDrawerOpen && (
-        <motion.aside
-          initial={{ x: 300, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 300, opacity: 0 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="fixed right-0 top-24 bottom-0 w-96 glass border-l border-white/10 z-40 p-8 flex flex-col gap-10 bg-zinc-950 shadow-2xl overflow-y-auto"
-        >
-          {/* ── Header bar (always visible) ───────────────────────── */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/20 border border-red-500/40">
-                <Skull className="w-5 h-5 text-red-500" />
-              </div>
-              <span className="text-xs font-bold text-red-500 uppercase tracking-widest">
-                Boss Encounter
-              </span>
-            </div>
-            <button
-              onClick={() => setDrawerOpen(false)}
-              className="p-2 text-gray-400 hover:text-white transition-colors hover:bg-white/5 rounded-lg"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setDrawerOpen(false)}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          />
 
-          {/* ── Content: skeleton OR real ──────────────────────────── */}
-          <AnimatePresence mode="wait">
-            {isLoading ? (
-              <CyberpunkSkeleton key="skeleton" />
-            ) : (
+          {/* Slide-out Panel */}
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed right-0 top-0 z-50 flex h-screen w-[450px] flex-col border-l border-white/10 bg-[#0a0a0c]/95 p-0 shadow-2xl backdrop-blur-xl overflow-hidden"
+          >
+            {/* Boss Art Header */}
+            <div className="relative h-64 w-full shrink-0 overflow-hidden bg-black">
+              {/* The "Screen" Blended Art */}
               <motion.div
-                key="content"
-                className="flex flex-col gap-6"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
+                initial={{ scale: 1.1, opacity: 0 }}
+                animate={{ scale: 1, opacity: 0.8 }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                className="absolute inset-0 z-0 bg-cover bg-center"
+                style={{ 
+                  backgroundImage: `url('https://images.unsplash.com/photo-1614728263952-84ea256f9679?q=80&w=1000&auto=format&fit=crop')`, // Cyberpunk Placeholder
+                  mixBlendMode: 'screen' 
+                }}
+              />
+              
+              {/* Violet Color Overlay */}
+              <div className="absolute inset-0 z-10 bg-violet-600/20 mix-blend-multiply" />
+              
+              {/* Bottom Fade */}
+              <div className="absolute inset-0 z-20 bg-gradient-to-t from-[#0a0a0c] via-transparent to-transparent" />
+
+              {/* Close Button Overlay */}
+              <button
+                onClick={() => setDrawerOpen(false)}
+                className="absolute top-4 right-4 z-30 rounded-xl border border-white/10 bg-black/40 p-2 text-white/70 backdrop-blur-md transition-all hover:bg-black/60 hover:text-white"
               >
-                {/* ── Title & description ─────────────────────────── */}
-                <div className="flex flex-col gap-6">
-                  <h2 className="text-4xl font-black text-white leading-tight">
-                    {currentChallenge || 'Linear Regression'}
-                  </h2>
-                  <p className="text-gray-400 text-lg leading-relaxed">
-                    Master the fundamentals of predictive modeling with{' '}
-                    {currentChallenge?.toLowerCase() || 'linear regression'}.
-                  </p>
-                  <div className="flex gap-2">
-                    {['regression', 'supervised', 'boss'].map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[10px] font-bold text-[#8b5cf6] bg-[#8b5cf6]/20 px-3 py-1 rounded-full uppercase tracking-widest border border-[#8b5cf6]/30"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <X className="h-5 w-5" />
+              </button>
 
-                {/* ── Challenge card ──────────────────────────────── */}
-                <div className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col gap-5 accent-glow relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <Skull className="w-16 h-16 text-red-500" />
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-1.5 rounded-md bg-red-500/20 border border-red-500/40">
-                      <Skull className="w-4 h-4 text-red-500" />
-                    </div>
-                    <span className="text-xs font-bold text-red-500 uppercase tracking-widest">
-                      Challenge
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-400 leading-relaxed relative z-10">
-                    Implement a {currentChallenge?.toLowerCase() || 'linear regression'} model from
-                    scratch using only NumPy, then compare its performance against
-                    scikit-learn&apos;s implementation.
-                  </p>
+              {/* Title Overlay */}
+              <div className="absolute bottom-6 left-8 z-30">
+                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-violet-400">
+                  Target Identified
+                </h2>
+                <h1 className="mt-1 text-3xl font-black text-white uppercase tracking-tight">
+                  {currentChallenge || "Unknown Entity"}
+                </h1>
+              </div>
+            </div>
 
-                  <button
-                    onClick={handleChallenge}
-                    disabled={isGenerating}
-                    className="mt-4 w-full bg-violet-600 hover:bg-violet-500 text-white font-bold py-3 flex items-center justify-center gap-2 rounded-xl transition-all shadow-[0_0_15px_rgba(124,58,237,0.4)] disabled:opacity-50 relative z-10"
-                  >
-                    {isGenerating ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                        INTERROGATING AI...
-                      </>
-                    ) : (
-                      <>
-                        <Terminal size={16} /> START CHALLENGE
-                      </>
-                    )}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.aside>
+            {/* Main Content Area */}
+            <div className="p-8 flex flex-col flex-1 overflow-hidden">
+            {/* Loot Content (Exa Data) */}
+            <div className="mt-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-gray-400">
+                Discovered Resources
+              </h3>
+
+              <div className="flex flex-col gap-4">
+                <AnimatePresence mode="wait">
+                  {isLoading ? (
+                    <motion.div
+                      key="skeleton"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col gap-4"
+                    >
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="relative h-24 w-full overflow-hidden rounded-2xl border border-white/5 bg-white/5">
+                          <motion.div
+                            animate={{ x: ['-100%', '100%'] }}
+                            transition={{ repeat: Infinity, duration: 1.5, ease: 'linear', delay: i * 0.2 }}
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent"
+                          />
+                          <div className="p-4 flex flex-col gap-3">
+                            <div className="h-4 w-3/4 rounded bg-white/10" />
+                            <div className="h-3 w-1/2 rounded bg-white/5" />
+                          </div>
+                        </div>
+                      ))}
+                      <div className="mt-4 flex items-center justify-center gap-2">
+                         <div className="h-1.5 w-1.5 rounded-full bg-violet-500 animate-pulse" />
+                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400/60 animate-pulse">
+                           [ SYSTEM DECODING... ]
+                         </span>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="content"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col gap-4"
+                    >
+                      {activeNodeData && activeNodeData.length > 0 ? (
+                        activeNodeData.map((resource: any, index: number) => (
+                          <a
+                            key={index}
+                            href={resource.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`group relative flex flex-col gap-2 rounded-2xl border p-4 transition-all hover:-translate-y-1 ${
+                              resource.quality === 3
+                                ? 'border-yellow-500/50 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.15)] hover:shadow-[0_0_25px_rgba(234,179,8,0.3)]'
+                                : 'border-white/5 bg-white/5 hover:border-[#8b5cf6]/40 hover:bg-white/10'
+                            }`}
+                          >
+                            {/* Legendary Badge */}
+                            {resource.quality === 3 && (
+                              <div className="absolute -right-2 -top-2 flex items-center gap-1 rounded-full bg-gradient-to-r from-yellow-600 to-yellow-400 px-3 py-1 text-[9px] font-black uppercase tracking-wider text-black shadow-lg">
+                                <Sparkles className="h-3 w-3" />
+                                Legendary Drop
+                              </div>
+                            )}
+
+                            <div className="flex items-start justify-between gap-4">
+                              <h4 className="text-sm font-bold text-gray-200 group-hover:text-white leading-tight">
+                                {resource.title}
+                              </h4>
+                              <ExternalLink className={`h-4 w-4 shrink-0 ${resource.quality === 3 ? 'text-yellow-500' : 'text-gray-500 group-hover:text-white'}`} />
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                                resource.type === 'video' ? 'bg-red-500/20 text-red-400' :
+                                resource.type === 'repo' ? 'bg-gray-500/20 text-gray-300' :
+                                'bg-blue-500/20 text-blue-400'
+                              }`}>
+                                {resource.type}
+                              </span>
+                            </div>
+                          </a>
+                        ))
+                      ) : (
+                        <div className="flex h-32 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/5 text-sm text-gray-500">
+                          No resources found.
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+            </div>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   );

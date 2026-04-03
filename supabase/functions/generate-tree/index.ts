@@ -1,62 +1,166 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+// Supabase Edge Function — generate-tree
+// Deno runtime / no npm imports
+// POST { goal: string } → { nodes: ReactFlowNode[], edges: ReactFlowEdge[] }
 
-const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
+const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
+const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY") ?? "";
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+
+// ─── Types ──────────────────────────────────────────────────────────────────────
+
+interface RFNode {
+    id: string;
+    type: "custom";
+    position: { x: number; y: number };
+    data: {
+        label: string;
+        type: "skill" | "boss" | "loot" | "milestone";
+        status: "locked" | "unlocked" | "in_progress" | "completed";
+    };
 }
 
-serve(async (req) => {
-    if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+interface RFEdge {
+    id: string;
+    source: string;
+    target: string;
+    type: "smoothstep";
+    style: { stroke: string; strokeWidth: number };
+    animated: boolean;
+}
+
+interface TreeResponse {
+    nodes: RFNode[];
+    edges: RFEdge[];
+}
+
+// ─── Helper: Deep Clean JSON strings from AI ──────────────────────────────────
+
+function cleanAIJson(raw: string): string {
+    return raw
+        .replace(/```json/gi, "")
+        .replace(/```/gi, "")
+        .replace(/\\n/g, "")
+        .trim();
+}
+
+// ─── Layout helpers ─────────────────────────────────────────────────────────────
+
+const NODE_GAP_Y = 180;
+const CENTER_X = 300;
+
+function buildPositionedTree(steps: { label: string; nodeType: string }[]): TreeResponse {
+    const nodeTypeMap: Record<string, RFNode["data"]["type"]> = {
+        skill: "skill",
+        boss: "boss",
+        loot: "loot",
+        milestone: "milestone",
+    };
+
+    const nodes: RFNode[] = steps.map((step, i) => ({
+        id: `node-${i}`,
+        type: "custom",
+        position: { x: CENTER_X, y: i * NODE_GAP_Y },
+        data: {
+            label: step.label,
+            type: (nodeTypeMap[step.nodeType] ?? "skill") as RFNode["data"]["type"],
+            status: i === 0 ? "unlocked" : "locked",
+        },
+    }));
+
+    const edges: RFEdge[] = nodes.slice(0, -1).map((_, i) => ({
+        id: `edge-${i}-${i + 1}`,
+        source: `node-${i}`,
+        target: `node-${i + 1}`,
+        type: "smoothstep",
+        style: { stroke: "#8b5cf6", strokeWidth: 2 },
+        animated: true,
+    }));
+
+    return { nodes, edges };
+}
+
+// ─── AI call ────────────────────────────────────────────────────────────────────
+
+async function generateStepsWithAI(goal: string): Promise<{ label: string; nodeType: string }[]> {
+    const systemPrompt = `You are a skill tree architect. Return ONLY a valid JSON array of objects with "label" and "nodeType". No markdown, no backticks.
+  nodeType must be one of: "skill", "boss", "loot", "milestone". Generate 6-10 steps.`;
+
+    const userMessage = `Goal: "${goal}"`;
+
+    // ── Try Mistral ─────────────────────────────────────────────────────────────
+    if (MISTRAL_API_KEY) {
+        try {
+            const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${MISTRAL_API_KEY}` },
+                body: JSON.stringify({
+                    model: "mistral-small-latest",
+                    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage }],
+                    temperature: 0.7,
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const cleaned = cleanAIJson(data.choices?.[0]?.message?.content ?? "[]");
+                return JSON.parse(cleaned);
+            }
+        } catch (_) { console.error("Mistral failed"); }
+    }
+
+    // ── Try Gemini ─────────────────────────────────────────────────────────────
+    if (GEMINI_API_KEY) {
+        try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `${systemPrompt}\n\n${userMessage}` }] }],
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const cleaned = cleanAIJson(data.candidates?.[0]?.content?.parts?.[0]?.text ?? "[]");
+                return JSON.parse(cleaned);
+            }
+        } catch (_) { console.error("Gemini failed"); }
+    }
+
+    // ── Mock Fallback ──────────────────────────────────────────────────────────
+    return [
+        { label: `${goal}: Basics`, nodeType: "skill" },
+        { label: `First Challenge`, nodeType: "boss" },
+        { label: `${goal}: Master`, nodeType: "milestone" },
+    ];
+}
+
+// ─── Handler ───────────────────────────────────────────────────────────────────
+
+Deno.serve(async (req: Request) => {
+    const corsHeaders = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+    };
+
+    if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
     try {
-        const { goal } = await req.json()
-        const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY')
+        const { goal } = await req.json();
+        if (!goal) throw new Error("Goal is required");
 
-        console.log(`📡 Goal: ${goal}`)
-        // This will help you see if the key is actually loading in the terminal
-        console.log(`🔑 Key check: ${GEMINI_API_KEY ? "LOADED (Starts with " + GEMINI_API_KEY.slice(0, 4) + ")" : "NOT FOUND"}`)
+        const steps = await generateStepsWithAI(goal);
+        const tree = buildPositionedTree(steps);
 
-        if (!GEMINI_API_KEY) throw new Error("Missing API Key")
-
-        const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: `Generate a skill tree for ${goal}. Return a JSON object with "nodes" (id, label) and "edges" (from, to). Limit to 5 nodes. Return ONLY the JSON block.` }] }]
-            })
-        })
-
-        const data = await geminiRes.json()
-
-        if (data.error) {
-            console.error("❌ GOOGLE API REJECTED KEY:", data.error.message)
-            throw new Error(`Google API: ${data.error.message}`)
-        }
-
-        const rawText = data.candidates[0].content.parts[0].text
-        console.log("📝 RAW AI TEXT RECEIVED")
-
-        // 🔥 THE FUCK-UP FIX: Extract JSON even if Gemini adds "Sure, here is your JSON"
-        const jsonStart = rawText.indexOf('{')
-        const jsonEnd = rawText.lastIndexOf('}') + 1
-        const jsonString = rawText.slice(jsonStart, jsonEnd)
-
-        const tree = JSON.parse(jsonString)
-
-        const finalNodes = tree.nodes.map((node: any) => ({
-            ...node,
-            loot: "https://www.youtube.com/results?search_query=" + encodeURIComponent(node.label)
-        }))
-
-        console.log("✅ SUCCESS: Sending tree to Ayush's frontend")
-        return new Response(JSON.stringify({ nodes: finalNodes, edges: tree.edges }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-
+        return new Response(JSON.stringify(tree), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     } catch (error) {
-        console.error("🔥 BACKEND CRASHED:", error.message)
         return new Response(JSON.stringify({ error: error.message }), {
-            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
     }
-})
+});

@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Loader2 } from 'lucide-react';
-import { usePlayerStore } from '@/store/playerStore';
+import { usePlayerStore } from '../store/playerStore';
+import { useSkillStore } from '../store/useSkillStore';
 import { toast } from 'sonner';
 
 // ─── Glitch flicker keyframes ──────────────────────────────────────────────────
@@ -80,16 +81,52 @@ export default function QuestModal() {
     }, 200);
 
     try {
-      const response = await fetch('http://127.0.0.1:54321/functions/v1/generate-tree', {
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV4d2tlemZpbWRmdm1hcW1kcnVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDQyMzEsImV4cCI6MjA5MDc4MDIzMX0.m8xq77Not34EFgfT-ZA91WlsygZzXQlGyTpR38_T59o';
+
+      const response = await fetch('https://exwkezfimdfvmaqmdruo.supabase.co/functions/v1/generate-tree', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+        },
         body: JSON.stringify({ goal: goal.trim() }),
       });
 
       if (!response.ok) throw new Error('Backend failed');
 
       const treeData = await response.json();
-      usePlayerStore.getState().setTreeData(treeData.nodes, treeData.edges);
+
+      // 🚨 NODE FIX: Force Strings, Positions, customSkill type, and default UI props!
+      const safeNodes = (treeData.nodes || []).map((node: any, index: number) => {
+        const fallbackText = node.data?.label || node.label || node.title || node.name || `Skill ${index + 1}`;
+
+        return {
+          ...node,
+          id: String(node.id || `fallback-node-${index}`),
+          type: 'customSkill',
+          position: node.position || { x: 300, y: index * 180 },
+          data: {
+            ...node.data,
+            label: fallbackText,
+            borderColor: '#a855f7',
+          }
+        };
+      });
+
+      // 🚨 EDGE FIX: Force Source/Target to be strings and add glowing styles!
+      const safeEdges = (treeData.edges || []).map((edge: any, index: number) => ({
+        ...edge,
+        id: edge.id || `e${edge.source || edge.from}-${edge.target || edge.to}-${index}`,
+        source: String(edge.source || edge.from),
+        target: String(edge.target || edge.to),
+        animated: true,
+        style: { stroke: '#a855f7', strokeWidth: 3 },
+      }));
+
+      // Pass the fully sanitized nodes AND edges to the store
+      useSkillStore.getState().setTree(safeNodes, safeEdges);
+      useSkillStore.getState().setCurrentQuestName(goal.trim());
 
       clearInterval(progressInterval);
       setProgress(100);
@@ -148,10 +185,8 @@ export default function QuestModal() {
                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 26 }}
               >
-                {/* Top glow line */}
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/60 to-transparent" />
 
-                {/* ── Close button ────────────────────────────────── */}
                 <button
                   onClick={resetAndClose}
                   className="absolute top-4 right-4 z-10 p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-colors"
@@ -160,7 +195,6 @@ export default function QuestModal() {
                 </button>
 
                 <div className="p-8 flex flex-col gap-6">
-                  {/* ── Header ───────────────────────────────────── */}
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
                       <Sparkles className="w-5 h-5 text-cyan-400" />
@@ -175,7 +209,6 @@ export default function QuestModal() {
                     </div>
                   </div>
 
-                  {/* ── Content: input or generating state ────────── */}
                   <AnimatePresence mode="wait">
                     {phase === 'idle' ? (
                       <motion.div
@@ -186,7 +219,6 @@ export default function QuestModal() {
                         exit={{ opacity: 0, y: -8 }}
                         transition={{ duration: 0.2 }}
                       >
-                        {/* Input */}
                         <div className="relative group">
                           <input
                             id="quest-goal-input"
@@ -197,11 +229,9 @@ export default function QuestModal() {
                             placeholder="WHAT DO YOU WANT TO MASTER? (e.g. Quantum Computing, Python for Finance)"
                             className="w-full rounded-xl border border-slate-600/60 bg-slate-800/60 px-5 py-4 text-sm font-medium text-white placeholder:text-gray-500 placeholder:text-xs focus:outline-none focus:border-cyan-500/60 focus:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all"
                           />
-                          {/* Bottom glow on focus */}
                           <div className="absolute bottom-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-cyan-500/0 to-transparent group-focus-within:via-cyan-500/50 transition-all duration-500" />
                         </div>
 
-                        {/* Submit button */}
                         <button
                           id="quest-generate-btn"
                           onClick={handleSubmit}
@@ -220,7 +250,6 @@ export default function QuestModal() {
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.25 }}
                       >
-                        {/* Spinner */}
                         <motion.div
                           animate={{ rotate: 360 }}
                           transition={{ repeat: Infinity, duration: 1.2, ease: 'linear' }}
@@ -228,7 +257,6 @@ export default function QuestModal() {
                           <Loader2 className="w-8 h-8 text-cyan-400" />
                         </motion.div>
 
-                        {/* Cycling status text */}
                         <span
                           className="text-xs font-mono font-bold tracking-[0.2em] uppercase text-cyan-400/80"
                           style={{ animation: 'quest-glitch 2s steps(1) infinite' }}
@@ -236,7 +264,6 @@ export default function QuestModal() {
                           [ {GENERATING_MESSAGES[msgIndex]} ]
                         </span>
 
-                        {/* Progress bar */}
                         <div className="w-full h-1.5 rounded-full bg-slate-800 border border-slate-700 overflow-hidden">
                           <motion.div
                             className="h-full rounded-full bg-gradient-to-r from-violet-500 via-cyan-400 to-violet-500"
@@ -246,7 +273,6 @@ export default function QuestModal() {
                           />
                         </div>
 
-                        {/* Goal echo */}
                         <p className="text-[10px] font-bold text-gray-600 tracking-wider uppercase text-center max-w-xs truncate">
                           Target: {goal}
                         </p>

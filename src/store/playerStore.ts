@@ -16,12 +16,17 @@ export interface PlayerState {
   hp: number;
   def: number;
   int: number;
+  totalLoot: number;
 
   // State & AI Data
   activeNode: NodeData | null;
   isDrawerOpen: boolean;
+  isBossArenaOpen: boolean;
   isQuestModalOpen: boolean;
+  isLevelUpVisible: boolean;
   currentChallenge: string | null; 
+  currentBoss: string | null;
+  currentBossId: string | null;
   activeNodeData: any | null;
 
   // Actions
@@ -29,21 +34,34 @@ export interface PlayerState {
   setActiveNode: (node: NodeData | null) => void;
   setDrawerOpen: (open: boolean) => void;
   setCurrentChallenge: (challenge: string | null) => void;
+  setCurrentBoss: (boss: string | null) => void;
+  setCurrentBossId: (id: string | null) => void;
+  setBossArenaOpen: (open: boolean) => void;
   setActiveNodeData: (data: any) => void;
   toggleQuestModal: () => void;
+  triggerLevelUp: () => void;
+  takeDamage: (amount: number) => void;
+  heal: (amount: number) => void;
+  addLoot: (amount: number) => void;
+  updateLoot: (amount: number) => void;
   setTreeData: (nodes: Node<CustomSkillNodeData, 'custom'>[], edges: Edge[]) => void;
 }
 
 // 3. Store Implementation
 export const usePlayerStore = create<PlayerState>((set) => ({
   // Default values
-  hp: 85,
+  hp: 100,
   def: 42,
   int: 78,
+  totalLoot: 0,
   activeNode: null,
   isDrawerOpen: false,
+  isBossArenaOpen: false,
   isQuestModalOpen: false,
+  isLevelUpVisible: false,
   currentChallenge: null,
+  currentBoss: null,
+  currentBossId: null,
   activeNodeData: null,
 
   // Functions
@@ -51,9 +69,20 @@ export const usePlayerStore = create<PlayerState>((set) => ({
     set((state) => ({ [stat]: Math.min(state[stat] + amount, 100) })), // Max 100 tak rakha hai
   setActiveNode: (node) => set({ activeNode: node }),
   setDrawerOpen: (open) => set({ isDrawerOpen: open }),
+  setBossArenaOpen: (open) => set({ isBossArenaOpen: open }),
   setCurrentChallenge: (challenge) => set({ currentChallenge: challenge }),
+  setCurrentBoss: (boss) => set({ currentBoss: boss }),
+  setCurrentBossId: (id) => set({ currentBossId: id }),
   setActiveNodeData: (data) => set({ activeNodeData: data }),
   toggleQuestModal: () => set((state) => ({ isQuestModalOpen: !state.isQuestModalOpen })),
+  triggerLevelUp: () => {
+    set({ isLevelUpVisible: true });
+     setTimeout(() => set({ isLevelUpVisible: false }), 2500);
+  },
+  takeDamage: (amount) => set((state) => ({ hp: Math.max(state.hp - amount, 0) })),
+  heal: (amount) => set((state) => ({ hp: Math.min(state.hp + amount, 100) })),
+  addLoot: (amount) => set((state) => ({ totalLoot: state.totalLoot + amount })),
+  updateLoot: (amount) => set((state) => ({ totalLoot: state.totalLoot + amount })),
   setTreeData: (nodes, edges) => {
     useSkillStore.getState().setNodes(nodes);
     useSkillStore.getState().setEdges(edges);

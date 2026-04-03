@@ -6,6 +6,8 @@ import type { Node, NodeProps } from '@xyflow/react';
 import { Handle, Position } from '@xyflow/react';
 import { motion, type Variants } from 'framer-motion';
 import { Lock, Check } from 'lucide-react';
+import { usePlayerStore } from '@/store/playerStore';
+import { getLootDrops } from '@/lib/exa';
 
 // ─── Type definitions ──────────────────────────────────────────────────────────
 
@@ -25,6 +27,7 @@ export type CustomSkillNodeData = {
   type: CustomSkillNodeType;
   label: string;
   status?: SkillNodeStatus;
+  searchQuery?: string;
 };
 
 type CustomSkillFlowNode = Node<CustomSkillNodeData, 'customSkillNode'>;
@@ -104,7 +107,15 @@ const inProgressPulse: Variants = {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export default function CustomSkillNode({ data, isConnectable }: NodeProps<CustomSkillFlowNode>) {
+export default function CustomSkillNode({ id, data, isConnectable }: NodeProps<CustomSkillFlowNode>) {
+  const { 
+    setDrawerOpen, 
+    setCurrentChallenge, 
+    setActiveNodeData,
+    setBossArenaOpen,
+    setCurrentBoss,
+    setCurrentBossId
+  } = usePlayerStore();
   const status: SkillNodeStatus = data.status ?? 'unlocked';
   const canonicalType = canonicalTypeByType[data.type];
   const variant = variantStyleByType[canonicalType];
@@ -136,7 +147,22 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
 
   return (
     <motion.div
-      className="relative w-28 h-28 flex items-center justify-center"
+      className="relative w-28 h-28 flex items-center justify-center cursor-pointer"
+      onClick={async () => {
+        if (isLocked) return;
+
+        if (canonicalType === 'boss') {
+          setCurrentBoss(data.label);
+          setCurrentBossId(id);
+          setBossArenaOpen(true);
+        } else {
+          setCurrentChallenge(data.label);
+          setDrawerOpen(true);
+          const queryToSearch = data.searchQuery || data.label;
+          const results = await getLootDrops(queryToSearch, []);
+          setActiveNodeData(results);
+        }
+      }}
       style={{
         filter: outerFilter,
         pointerEvents: isLocked ? 'none' : 'auto',
@@ -152,7 +178,7 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
         type="target"
         position={Position.Top}
         isConnectable={isConnectable}
-        className="!w-3 !h-3 !bg-white/80 !border-2 !border-black/60"
+        className="opacity-0"
       />
 
       {/* Main visual container — animated for status transitions */}
@@ -172,6 +198,19 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
         layout
         transition={{ duration: 0.4, ease: 'easeOut' }}
       >
+        {/* Active Scanning Ring (Only for In Progress) */}
+        {isInProgress && (
+          <motion.div
+            className="absolute inset-0 rounded-[inherit] border border-cyan-400/40"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            style={{
+              clipPath: 'polygon(0% 0%, 100% 0%, 100% 30%, 0% 30%)',
+              filter: 'drop-shadow(0 0 8px rgba(6,182,212,0.5))'
+            }}
+          />
+        )}
+
         <Image
           src={iconSrc}
           alt={data.label}
@@ -219,7 +258,7 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
         type="source"
         position={Position.Bottom}
         isConnectable={isConnectable}
-        className="!w-3 !h-3 !bg-white/80 !border-2 !border-black/60"
+        className="opacity-0"
       />
     </motion.div>
   );
