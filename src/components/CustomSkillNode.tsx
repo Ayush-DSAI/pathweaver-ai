@@ -108,7 +108,13 @@ const inProgressPulse: Variants = {
 // ─── Component ─────────────────────────────────────────────────────────────────
 
 export default function CustomSkillNode({ data, isConnectable }: NodeProps<CustomSkillFlowNode>) {
-  const { setDrawerOpen, setCurrentChallenge, setActiveNodeData } = usePlayerStore();
+  const { 
+    setDrawerOpen, 
+    setCurrentChallenge, 
+    setActiveNodeData,
+    setBossArenaOpen,
+    setCurrentBoss
+  } = usePlayerStore();
   const status: SkillNodeStatus = data.status ?? 'unlocked';
   const canonicalType = canonicalTypeByType[data.type];
   const variant = variantStyleByType[canonicalType];
@@ -143,11 +149,17 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
       className="relative w-28 h-28 flex items-center justify-center cursor-pointer"
       onClick={async () => {
         if (isLocked) return;
-        setCurrentChallenge(data.label);
-        setDrawerOpen(true);
-        const queryToSearch = data.searchQuery || data.label;
-        const results = await getLootDrops(queryToSearch, []);
-        setActiveNodeData(results);
+
+        if (canonicalType === 'boss') {
+          setCurrentBoss(data.label);
+          setBossArenaOpen(true);
+        } else {
+          setCurrentChallenge(data.label);
+          setDrawerOpen(true);
+          const queryToSearch = data.searchQuery || data.label;
+          const results = await getLootDrops(queryToSearch, []);
+          setActiveNodeData(results);
+        }
       }}
       style={{
         filter: outerFilter,

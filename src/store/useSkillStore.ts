@@ -26,6 +26,8 @@ export interface SkillStoreState {
   nodes: Node<CustomSkillNodeData, 'custom'>[];
   /** React Flow edges */
   edges: Edge[];
+  /** The name of the currently active quest/topic */
+  currentQuestName: string;
 
   /** Replace the full node list */
   setNodes: (nodes: Node<CustomSkillNodeData, 'custom'>[]) => void;
@@ -33,6 +35,8 @@ export interface SkillStoreState {
   setEdges: (edges: Edge[]) => void;
   /** Atomically replace both nodes and edges (used by the AI tree generator) */
   setTree: (nodes: Node<CustomSkillNodeData, 'custom'>[], edges: Edge[]) => void;
+  /** Update the active quest topic name */
+  setCurrentQuestName: (name: string) => void;
 
   /**
    * Open a Supabase Realtime channel that listens for UPDATE events on
@@ -48,10 +52,12 @@ export interface SkillStoreState {
 export const useSkillStore = create<SkillStoreState>((set, get) => ({
   nodes: [],
   edges: [],
+  currentQuestName: 'New Expedition',
 
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
   setTree: (newNodes, newEdges) => set({ nodes: newNodes, edges: newEdges }),
+  setCurrentQuestName: (name) => set({ currentQuestName: name }),
 
   subscribeToSkillUpdates: () => {
     const channel: RealtimeChannel = supabase

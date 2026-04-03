@@ -126,6 +126,7 @@ export default function QuestModal() {
 
       // Pass the fully sanitized nodes AND edges to the store
       useSkillStore.getState().setTree(safeNodes, safeEdges);
+      useSkillStore.getState().setCurrentQuestName(goal.trim());
 
       clearInterval(progressInterval);
       setProgress(100);

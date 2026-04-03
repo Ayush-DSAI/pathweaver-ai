@@ -4,10 +4,13 @@ import SkillTree from '@/components/SkillTree';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import BossDrawer from '@/components/BossDrawer';
+import BossArena from '@/components/BossArena';
 import QuestModal from '@/components/QuestModal';
 import LevelUpOverlay from '@/components/LevelUpOverlay';
 import { Layers, Maximize2, Search } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { usePlayerStore } from '@/store/playerStore';
+import { useSkillStore } from '@/store/useSkillStore';
 
 const legendItems = [
   {
@@ -29,6 +32,9 @@ const legendItems = [
 ];
 
 export default function Home() {
+  const { isBossArenaOpen, setBossArenaOpen, currentBoss } = usePlayerStore();
+  const { currentQuestName } = useSkillStore();
+
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-[#0a0a0c] font-sans text-white selection:bg-[#8b5cf6]/30 flex">
       {/* Background VFX */}
@@ -107,7 +113,9 @@ export default function Home() {
                     Skill Tree
                   </span>
                   <div className="h-4 w-px bg-white/10" />
-                  <span className="text-sm font-bold text-gray-200">Master Machine Learning</span>
+                  <span className="text-sm font-bold text-gray-200 capitalize">
+                    {currentQuestName ? `Master ${currentQuestName}` : 'Select a Quest'}
+                  </span>
                   <span className="text-[9px] font-black uppercase text-green-500 bg-green-500/10 px-2 py-0.5 rounded">v3</span>
                 </div>
 
@@ -163,6 +171,11 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* ── Boss Arena Overlay ────────────────────────────────────────── */}
+      <AnimatePresence>
+        {isBossArenaOpen && <BossArena />}
+      </AnimatePresence>
     </main>
   );
 }
