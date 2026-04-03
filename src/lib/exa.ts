@@ -1,3 +1,5 @@
+"use server";
+
 import Exa from 'exa-js';
 
 export interface Resource {
@@ -8,7 +10,7 @@ export interface Resource {
 }
 
 // Instantiate Exa client using the API key from environment variables
-const exa = new Exa(process.env.NEXT_PUBLIC_EXA_API_KEY);
+const exa = new Exa(process.env.EXA_API_KEY);
 /**
  * Utility function to infer resource type based on URL patterns.
  * Defaults to "article".
