@@ -1,9 +1,17 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Shield, Zap, Coins, Wifi } from 'lucide-react';
+import { usePlayerStore } from '@/store/playerStore';
 
 const Header = () => {
+  const { hp, def, int, totalLoot, isDrawerOpen } = usePlayerStore();
+
+  // Alert colors when boss drawer is open
+  const accentColor = isDrawerOpen ? 'text-amber-500' : 'text-[#8b5cf6]';
+  const accentBg = isDrawerOpen ? 'bg-amber-500/20' : 'bg-[#8b5cf6]/20';
+  const accentBorder = isDrawerOpen ? 'border-amber-500/50' : 'border-[#8b5cf6]/40';
+
   return (
     <motion.header 
       initial={{ y: -50, opacity: 0 }}
@@ -13,9 +21,9 @@ const Header = () => {
     >
       <div className="flex items-center gap-6">
         <div className="relative">
-          <div className="w-16 h-16 rounded-full border-2 border-[#8b5cf6] flex items-center justify-center bg-[#8b5cf6]/20 relative">
+          <div className={`w-16 h-16 rounded-full border-2 transition-colors duration-500 ${isDrawerOpen ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'border-[#8b5cf6]'} flex items-center justify-center ${accentBg} relative`}>
             <span className="text-xl font-bold text-white">AI</span>
-            <div className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full bg-[#f59e0b] border-2 border-[#0a0a0c] flex items-center justify-center text-xs font-bold text-[#0a0a0c]">
+            <div className={`absolute -bottom-1 -left-1 w-8 h-8 rounded-full transition-colors duration-500 ${isDrawerOpen ? 'bg-amber-500' : 'bg-[#f59e0b]'} border-2 border-[#0a0a0c] flex items-center justify-center text-xs font-bold text-[#0a0a0c]`}>
               12
             </div>
           </div>
@@ -41,7 +49,19 @@ const Header = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">HP</span>
-              <span className="text-lg font-bold text-white">85/100</span>
+              <div className="overflow-hidden h-7">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={hp}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -20, opacity: 0 }}
+                    className="text-lg font-bold text-white block"
+                  >
+                    {hp}/100
+                  </motion.span>
+                </AnimatePresence>
+              </div>
             </div>
           </div>
 
@@ -65,17 +85,41 @@ const Header = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">INT</span>
-              <span className="text-lg font-bold text-white">78</span>
+              <div className="overflow-hidden h-7">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={int}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -20, opacity: 0 }}
+                    className={`text-lg font-bold text-white block transition-colors duration-500`}
+                  >
+                    {int}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 bg-[#f59e0b]/10 border border-[#f59e0b]/30 px-6 py-3 rounded-2xl accent-glow relative group cursor-pointer transition-all hover:bg-[#f59e0b]/20">
+        <div className={`flex items-center gap-4 transition-all duration-500 ${isDrawerOpen ? 'bg-amber-500/20 border-amber-500/50' : 'bg-[#f59e0b]/10 border-[#f59e0b]/30'} px-6 py-3 rounded-2xl accent-glow relative group cursor-pointer hover:bg-opacity-30`}>
           <div className="flex flex-col items-end">
-            <span className="text-[10px] text-[#f59e0b] uppercase tracking-wider font-bold">LOOT</span>
+            <span className={`text-[10px] uppercase tracking-wider font-bold transition-colors duration-500 ${isDrawerOpen ? 'text-amber-400' : 'text-[#f59e0b]'}`}>LOOT</span>
             <div className="flex items-center gap-2">
-              <Coins className="w-5 h-5 text-[#f59e0b]" />
-              <span className="text-xl font-black text-white">2,450</span>
+              <Coins className={`w-5 h-5 transition-colors duration-500 ${isDrawerOpen ? 'text-amber-400' : 'text-[#f59e0b]'}`} />
+              <div className="overflow-hidden h-7">
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={totalLoot}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -20, opacity: 0 }}
+                    className="text-xl font-black text-white block"
+                  >
+                    {totalLoot.toLocaleString()}
+                  </motion.span>
+                </AnimatePresence>
+              </div>
             </div>
           </div>
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#f59e0b] rounded-full flex items-center justify-center text-[10px] font-bold text-[#0a0a0c]">

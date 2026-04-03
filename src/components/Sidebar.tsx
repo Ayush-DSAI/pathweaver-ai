@@ -5,10 +5,14 @@ import { motion } from 'framer-motion';
 import { LayoutDashboard, Map, Crosshair, Box, Trophy, Plus } from 'lucide-react';
 
 export default function Sidebar() {
-  const { hp, def, int, toggleQuestModal } = usePlayerStore();
+  const { hp, def, int, toggleQuestModal, isDrawerOpen } = usePlayerStore();
+
+  const accentColor = isDrawerOpen ? 'text-amber-400' : 'text-violet-400';
+  const accentBg = isDrawerOpen ? 'bg-amber-600/20' : 'bg-violet-600/20';
+  const accentBorder = isDrawerOpen ? 'border-amber-500/30' : 'border-violet-500/30';
 
   const stats = [
-    { name: 'INT', value: int, color: 'bg-violet-500', shadow: 'shadow-violet-500/50' },
+    { name: 'INT', value: int, color: isDrawerOpen ? 'bg-amber-500' : 'bg-violet-500', shadow: isDrawerOpen ? 'shadow-amber-500/50' : 'shadow-violet-500/50' },
     { name: 'HP', value: hp, color: 'bg-red-500', shadow: 'shadow-red-500/50' },
     { name: 'DEF', value: def, color: 'bg-blue-500', shadow: 'shadow-blue-500/50' },
   ];
@@ -18,8 +22,8 @@ export default function Sidebar() {
       
       {/* Top Section: Navigation Icons */}
       <div className="flex flex-col items-center lg:items-start lg:px-6 space-y-6">
-        <div className="w-10 h-10 bg-violet-600/20 rounded-xl flex items-center justify-center border border-violet-500/30 mb-4">
-          <LayoutDashboard className="text-violet-400 w-5 h-5" />
+        <div className={`w-10 h-10 ${accentBg} rounded-xl flex items-center justify-center border ${accentBorder} mb-4 shadow-[0_0_15px_rgba(0,0,0,0.1)] transition-all duration-500`}>
+          <LayoutDashboard className={`${accentColor} w-5 h-5`} />
         </div>
         
         <nav className="flex flex-col gap-4 w-full">
@@ -45,7 +49,7 @@ export default function Sidebar() {
         <button
           id="new-quest-btn"
           onClick={toggleQuestModal}
-          className="mt-2 w-full flex items-center justify-center lg:justify-start gap-2 rounded-xl border border-cyan-500/50 bg-cyan-500/5 px-3 py-2.5 text-[10px] font-black uppercase tracking-widest text-cyan-400 transition-all hover:bg-cyan-500/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]"
+          className={`mt-2 w-full flex items-center justify-center lg:justify-start gap-2 rounded-xl border transition-all duration-500 ${isDrawerOpen ? 'border-amber-500/50 bg-amber-500/5 text-amber-400 hover:bg-amber-500/10 hover:shadow-[0_0_15px_rgba(245,158,11,0.5)]' : 'border-cyan-500/50 bg-cyan-500/5 text-cyan-400 hover:bg-cyan-500/10 hover:shadow-[0_0_15px_rgba(6,182,212,0.5)]'} px-3 py-2.5 text-[10px] font-black uppercase tracking-widest`}
         >
           <Plus className="w-4 h-4" />
           <span className="hidden lg:block">New Quest</span>
