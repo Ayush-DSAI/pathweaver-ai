@@ -1,7 +1,8 @@
 'use client';
 
-import { Background, BackgroundVariant, Controls, ReactFlow } from '@xyflow/react';
+import { Background, BackgroundVariant, Controls, ReactFlow, useNodesState, useEdgesState } from '@xyflow/react';
 import type { Edge, Node, NodeMouseHandler } from '@xyflow/react';
+import { useEffect } from 'react';
 
 import CustomSkillNode from '@/components/CustomSkillNode';
 import type { CustomSkillNodeData } from '@/components/CustomSkillNode';
@@ -65,6 +66,16 @@ const initialEdges: Edge[] = [
 export default function SkillTree() {
   const { setDrawerOpen, setCurrentChallenge } = usePlayerStore();
 
+  // Locked the static data into proper React Flow state so it doesn't force re-renders
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // THE SAFE ZONE: Any Supabase or Exa fetching MUST go inside here
+  useEffect(() => {
+    // If Ayush wrote a supabase.channel().subscribe(), drop it here.
+    // The empty brackets below act as emergency brakes to stop the infinite loop.
+  }, []);
+
   const onNodeClick: NodeMouseHandler = (_, node) => {
     const customNode = node as Node<CustomSkillNodeData, 'custom'>;
     if (customNode.data.type === 'boss' || customNode.data.type === 'boss node') {
@@ -74,17 +85,24 @@ export default function SkillTree() {
   };
 
   return (
-    <div className="w-full h-full bg-[#05050a]">
+    <div className="h-full w-full">
       <ReactFlow
-        nodes={initialNodes}
-        edges={initialEdges}
-        nodeTypes={nodeTypes}
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
+        nodeTypes={nodeTypes}
         fitView
-        className="h-full w-full bg-[#05050a]"
+        className="bg-transparent"
       >
-        <Background variant={BackgroundVariant.Lines} gap={28} size={1} color="rgba(255,255,255,0.06)" />
-        <Controls />
+        <Background
+          color="#ffffff"
+          variant={BackgroundVariant.Dots}
+          gap={12}
+          size={1}
+        />
+        <Controls className="fill-white text-black" />
       </ReactFlow>
     </div>
   );
