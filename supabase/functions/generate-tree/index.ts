@@ -11,7 +11,8 @@ interface RFNode {
         label: string;
         type: "skill" | "boss" | "loot" | "milestone";
         status: "locked" | "unlocked" | "in_progress" | "completed";
-        searchQuery: string; // 🔥 THE EXA CHEAT CODE
+        searchQuery: string;
+        bossTopic?: string;
     };
 }
 
@@ -36,18 +37,36 @@ function buildPositionedTree(steps: any[], goal: string): { nodes: RFNode[], edg
         skill: "skill", boss: "boss", loot: "loot", milestone: "milestone",
     };
 
-    const nodes: RFNode[] = steps.map((step, i) => ({
-        id: `node-${i}`,
-        type: "customSkill",
-        position: { x: CENTER_X, y: i * NODE_GAP_Y },
-        data: {
-            label: step.label,
-            type: (nodeTypeMap[step.nodeType] ?? "skill") as RFNode["data"]["type"],
-            status: i === 0 ? "in_progress" : "locked",
-            // Pass the AI's custom search query to the frontend for Exa!
-            searchQuery: step.searchQuery || `${goal} ${step.label} tutorial`
-        },
-    }));
+    // 🔥 THE ZONE LOGIC TRACKER: Keeps track of when we hit Boss 1
+    let hasPassedFirstBoss = false;
+
+    const nodes: RFNode[] = steps.map((step, i) => {
+        // 🔥 Evaluate the status dynamically for every node
+        let initialStatus = "locked"; // Assume locked by default
+
+        if (!hasPassedFirstBoss) {
+            initialStatus = "unlocked"; // Unlock everything in Zone 1
+
+            // If this current node is the Boss, trip the wire!
+            // This means the NEXT iteration of the loop will stay "locked".
+            if (step.nodeType === "boss" || step.nodeType === "milestone") {
+                hasPassedFirstBoss = true;
+            }
+        }
+
+        return {
+            id: `node-${i}`,
+            type: "customSkill",
+            position: { x: CENTER_X, y: i * NODE_GAP_Y },
+            data: {
+                label: step.label,
+                type: (nodeTypeMap[step.nodeType] ?? "skill") as RFNode["data"]["type"],
+                status: initialStatus as RFNode["data"]["status"], // Applies our new logic
+                searchQuery: step.searchQuery || `${goal} ${step.label} tutorial`,
+                bossTopic: step.bossTopic || goal
+            },
+        };
+    });
 
     const edges: RFEdge[] = nodes.slice(0, -1).map((_, i) => ({
         id: `edge-${i}-${i + 1}`,
@@ -59,28 +78,23 @@ function buildPositionedTree(steps: any[], goal: string): { nodes: RFNode[], edg
 }
 
 async function generateStepsWithAI(goal: string): Promise<any[]> {
-    const systemPrompt = `You are an expert curriculum designer. Generate a learning path for: "${goal}". 
+    const systemPrompt = `You are an expert RPG Dungeon Master and Curriculum Designer. Generate a learning path for: "${goal}". 
     RULES:
-    1. DYNAMIC LENGTH: Generate anywhere from 3 to 8 steps depending on the complexity of the topic.
-    2. NO generic terms. Use highly specific, real-world technical sub-topics.
-    3. For each step, create a "searchQuery" string. This must be a highly optimized, context-heavy search engine query to find the best tutorials for this specific step.
-    4. Return ONLY a valid JSON array.
+    1. DYNAMIC LENGTH & PACING: Generate 5 to 9 steps. 
+    2. BOSS PLACEMENT: You MUST dynamically place a "boss" node after every 2 or 3 "skill" nodes as a checkpoint. The final node MUST also be a "boss" or "milestone".
+    3. STANDARD NODES: For "skill" nodes, provide a highly specific "label" and a highly optimized YouTube "searchQuery".
+    4. BOSS NODES: For "boss" nodes, the label should sound like an RPG boss (e.g., "The Sentinel of Syntax"). You MUST include a "bossTopic" string detailing exactly what concepts this boss will test the user on based on the previous nodes.
+    5. Return ONLY a valid JSON array.
     
     EXAMPLE FORMAT:
     [
-      { 
-        "label": "The Call Stack", 
-        "nodeType": "skill", 
-        "searchQuery": "How the call stack works in Python recursion tutorial" 
-      },
-      { 
-        "label": "Base Cases vs Recursive Steps", 
-        "nodeType": "boss", 
-        "searchQuery": "Python base cases and recursive steps explained with examples" 
-      }
+      { "label": "Call Stack Memory", "nodeType": "skill", "searchQuery": "Python call stack memory execution tutorial" },
+      { "label": "Base Cases", "nodeType": "skill", "searchQuery": "Python recursion base cases explained" },
+      { "label": "The Infinite Looper", "nodeType": "boss", "bossTopic": "Python call stack limits and identifying missing base cases." },
+      { "label": "Tail Recursion", "nodeType": "skill", "searchQuery": "Python tail recursion optimization" },
+      { "label": "The Final Compiler", "nodeType": "boss", "bossTopic": "Tail recursion, base cases, and complex recursive algorithms." }
     ]`;
 
-    // Try Mistral First (To avoid Google Quota issues)
     if (MISTRAL_API_KEY) {
         try {
             const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -99,7 +113,6 @@ async function generateStepsWithAI(goal: string): Promise<any[]> {
         } catch (e) { console.error("Mistral failed", e); }
     }
 
-    // Try Gemini as Backup
     if (GEMINI_API_KEY) {
         try {
             const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -117,7 +130,7 @@ async function generateStepsWithAI(goal: string): Promise<any[]> {
     }
 
     return [
-        { label: "API Error", nodeType: "boss", searchQuery: "API Quota Error" }
+        { label: "API Error", nodeType: "boss", searchQuery: "API Quota Error", bossTopic: "API Limits" }
     ];
 }
 
