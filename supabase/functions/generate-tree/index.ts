@@ -1,5 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+const MISTRAL_API_KEY = Deno.env.get("MISTRAL_API_KEY") ?? "";
+
 interface RFNode {
     id: string;
     type: "customSkill";
@@ -8,7 +11,7 @@ interface RFNode {
         label: string;
         type: "skill" | "boss" | "loot" | "milestone";
         status: "locked" | "unlocked" | "in_progress" | "completed";
-        loot?: string;
+        searchQuery: string; // 🔥 THE EXA CHEAT CODE
     };
 }
 
@@ -21,12 +24,14 @@ interface RFEdge {
     animated: boolean;
 }
 
-// ─── Layout & Data Formatting ──────────────────────────────────────────────────
+function cleanAIJson(raw: string): string {
+    return raw.replace(/```json/gi, "").replace(/```/gi, "").trim();
+}
 
 const NODE_GAP_Y = 180;
 const CENTER_X = 300;
 
-function buildPositionedTree(steps: { label: string; nodeType: string }[], goal: string): { nodes: RFNode[], edges: RFEdge[] } {
+function buildPositionedTree(steps: any[], goal: string): { nodes: RFNode[], edges: RFEdge[] } {
     const nodeTypeMap: Record<string, RFNode["data"]["type"]> = {
         skill: "skill", boss: "boss", loot: "loot", milestone: "milestone",
     };
@@ -39,8 +44,8 @@ function buildPositionedTree(steps: { label: string; nodeType: string }[], goal:
             label: step.label,
             type: (nodeTypeMap[step.nodeType] ?? "skill") as RFNode["data"]["type"],
             status: i === 0 ? "in_progress" : "locked",
-            // 🔥 Contextual Loot: Combines the main goal and the specific step for accurate YouTube searches!
-            loot: `https://www.youtube.com/results?search_query=${encodeURIComponent(goal + " " + step.label)}`
+            // Pass the AI's custom search query to the frontend for Exa!
+            searchQuery: step.searchQuery || `${goal} ${step.label} tutorial`
         },
     }));
 
@@ -53,55 +58,68 @@ function buildPositionedTree(steps: { label: string; nodeType: string }[], goal:
     return { nodes, edges };
 }
 
-// ─── The Brain (Demo Mode Override) ────────────────────────────────────────────
+async function generateStepsWithAI(goal: string): Promise<any[]> {
+    const systemPrompt = `You are an expert curriculum designer. Generate a learning path for: "${goal}". 
+    RULES:
+    1. DYNAMIC LENGTH: Generate anywhere from 3 to 8 steps depending on the complexity of the topic.
+    2. NO generic terms. Use highly specific, real-world technical sub-topics.
+    3. For each step, create a "searchQuery" string. This must be a highly optimized, context-heavy search engine query to find the best tutorials for this specific step.
+    4. Return ONLY a valid JSON array.
+    
+    EXAMPLE FORMAT:
+    [
+      { 
+        "label": "The Call Stack", 
+        "nodeType": "skill", 
+        "searchQuery": "How the call stack works in Python recursion tutorial" 
+      },
+      { 
+        "label": "Base Cases vs Recursive Steps", 
+        "nodeType": "boss", 
+        "searchQuery": "Python base cases and recursive steps explained with examples" 
+      }
+    ]`;
 
-async function generateStepsWithAI(goal: string): Promise<{ label: string; nodeType: string }[]> {
-    // 🚨 HACKATHON DEMO MODE 🚨
-    // Bypasses the dead Google API key entirely. Guaranteed to work instantly.
-
-    const search = goal.toLowerCase();
-
-    if (search.includes("recursion") || search.includes("python")) {
-        return [
-            { label: "The Call Stack & Execution Context", nodeType: "skill" },
-            { label: "Base Cases vs Recursive Steps", nodeType: "skill" },
-            { label: "Defeat the Infinite Loop", nodeType: "boss" },
-            { label: "Memoization & Caching", nodeType: "skill" },
-            { label: "Master Tail Recursion", nodeType: "milestone" }
-        ];
+    // Try Mistral First (To avoid Google Quota issues)
+    if (MISTRAL_API_KEY) {
+        try {
+            const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${MISTRAL_API_KEY}` },
+                body: JSON.stringify({
+                    model: "mistral-small-latest",
+                    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: goal }],
+                    temperature: 0.7,
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                return JSON.parse(cleanAIJson(data.choices[0].message.content));
+            }
+        } catch (e) { console.error("Mistral failed", e); }
     }
 
-    if (search.includes("quantum") || search.includes("computing")) {
-        return [
-            { label: "Superposition & Qubits", nodeType: "skill" },
-            { label: "Quantum Gates (X, Y, Z)", nodeType: "skill" },
-            { label: "Build a Bell State", "nodeType": "boss" },
-            { label: "Entanglement Algorithms", "nodeType": "skill" },
-            { label: "Shor's Algorithm", "nodeType": "milestone" }
-        ];
+    // Try Gemini as Backup
+    if (GEMINI_API_KEY) {
+        try {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: systemPrompt }] }]
+                })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                return JSON.parse(cleanAIJson(data.candidates[0].content.parts[0].text));
+            }
+        } catch (e) { console.error("Gemini failed", e); }
     }
 
-    if (search.includes("machine learning") || search.includes("ml")) {
-        return [
-            { label: "Linear Algebra & Tensors", nodeType: "skill" },
-            { label: "Gradient Descent Algorithm", nodeType: "skill" },
-            { label: "Build a Neural Network", "nodeType": "boss" },
-            { label: "Backpropagation Math", nodeType: "skill" },
-            { label: "Deploy an AI Model", nodeType: "milestone" }
-        ];
-    }
-
-    // Ultimate Fallback for any other random topic they type during the demo
     return [
-        { label: `${goal} Fundamentals`, nodeType: "skill" },
-        { label: `Core Architecture`, nodeType: "skill" },
-        { label: `First Practical Build`, nodeType: "boss" },
-        { label: `Advanced Optimization`, nodeType: "skill" },
-        { label: `Final Mastery`, nodeType: "milestone" }
+        { label: "API Error", nodeType: "boss", searchQuery: "API Quota Error" }
     ];
 }
-
-// ─── Edge Function Handler ─────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
     const corsHeaders = {
@@ -110,17 +128,11 @@ Deno.serve(async (req: Request) => {
         "Access-Control-Allow-Methods": "POST, OPTIONS",
     };
 
-    // Handle Preflight CORS request
     if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
     try {
         const { goal } = await req.json();
-        if (!goal) throw new Error("Goal is required");
-
-        // 1. Get the path (from Demo Mode)
         const steps = await generateStepsWithAI(goal);
-
-        // 2. Format for Ayush's UI + Add contextual loot links
         const tree = buildPositionedTree(steps, goal);
 
         return new Response(JSON.stringify(tree), {
