@@ -10,6 +10,7 @@ interface RFNode {
     label: string;
     type: 'skill' | 'boss' | 'loot' | 'milestone';
     status: 'locked' | 'unlocked' | 'in_progress' | 'completed';
+    searchQuery: string;
   };
 }
 
@@ -25,6 +26,7 @@ interface RFEdge {
 interface Step {
   label: string;
   nodeType: string;
+  searchQuery: string;
 }
 
 // ─── Layout builder ────────────────────────────────────────────────────────────
@@ -45,6 +47,7 @@ function buildTree(steps: Step[]): { nodes: RFNode[]; edges: RFEdge[] } {
       label: step.label,
       type: typeMap[step.nodeType] ?? 'skill',
       status: i === 0 ? 'unlocked' : 'locked',
+      searchQuery: step.searchQuery,
     },
   }));
 
@@ -64,9 +67,10 @@ function buildTree(steps: Step[]): { nodes: RFNode[]; edges: RFEdge[] } {
 
 const SYSTEM_PROMPT = `You are a skill tree architect for a gamified learning app called PathWeaver AI.
 Given a learning goal, return a JSON array of 7–9 skill tree steps.
-Each object must have exactly two keys:
+Each object must have exactly three keys:
   "label": a concise skill name (3–6 words)
   "nodeType": one of "skill" | "boss" | "loot" | "milestone"
+  "searchQuery": a technically optimized search term (4–7 words) to find high-quality articles/videos on this specific sub-topic.
 
 Rules:
   • Start with foundational skills
@@ -158,14 +162,14 @@ function parseSteps(raw: string): Step[] | null {
 function mockSteps(goal: string): Step[] {
   const title = goal.split(' ').slice(0, 3).join(' ');
   return [
-    { label: `${title}: Foundations`,   nodeType: 'skill'     },
-    { label: 'Core Concepts',            nodeType: 'skill'     },
-    { label: 'Knowledge Boss',           nodeType: 'boss'      },
-    { label: 'Project: Mini Build',      nodeType: 'loot'      },
-    { label: 'Intermediate Skills',      nodeType: 'skill'     },
-    { label: 'Advanced Boss',            nodeType: 'boss'      },
-    { label: 'Expert Techniques',        nodeType: 'skill'     },
-    { label: `${title}: Mastery`,        nodeType: 'milestone' },
+    { label: `${title}: Foundations`,   nodeType: 'skill',     searchQuery: `${goal} foundations tutorial` },
+    { label: 'Core Concepts',            nodeType: 'skill',     searchQuery: `${goal} key concepts for beginners` },
+    { label: 'Knowledge Boss',           nodeType: 'boss',      searchQuery: `${goal} intermediate mastery challenges` },
+    { label: 'Project: Mini Build',      nodeType: 'loot',      searchQuery: `hands-on projects for ${goal}` },
+    { label: 'Intermediate Skills',      nodeType: 'skill',     searchQuery: `${goal} advanced techniques and best practices` },
+    { label: 'Advanced Boss',            nodeType: 'boss',      searchQuery: `scaling ${goal} for production` },
+    { label: 'Expert Techniques',        nodeType: 'skill',     searchQuery: `expert-level ${goal} optimizations` },
+    { label: `${title}: Mastery`,        nodeType: 'milestone', searchQuery: `future trends in ${goal}` },
   ];
 }
 

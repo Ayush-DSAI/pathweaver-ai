@@ -27,6 +27,7 @@ export type CustomSkillNodeData = {
   type: CustomSkillNodeType;
   label: string;
   status?: SkillNodeStatus;
+  searchQuery?: string;
 };
 
 type CustomSkillFlowNode = Node<CustomSkillNodeData, 'customSkillNode'>;
@@ -144,7 +145,8 @@ export default function CustomSkillNode({ data, isConnectable }: NodeProps<Custo
         if (isLocked) return;
         setCurrentChallenge(data.label);
         setDrawerOpen(true);
-        const results = await getLootDrops(data.label, []);
+        const queryToSearch = data.searchQuery || data.label;
+        const results = await getLootDrops(queryToSearch, []);
         setActiveNodeData(results);
       }}
       style={{

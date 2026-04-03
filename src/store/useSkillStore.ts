@@ -16,6 +16,7 @@ export interface SkillNodeRow {
   type: string;
   position_x: number;
   position_y: number;
+  search_query?: string;
   [key: string]: unknown; // allow extra columns without breaking types
 }
 
@@ -77,6 +78,7 @@ export const useSkillStore = create<SkillStoreState>((set, get) => ({
                   label: updatedRow.label,
                   type: updatedRow.type as CustomSkillNodeData['type'],
                   status: updatedRow.status,
+                  searchQuery: updatedRow.search_query,
                 },
                 // Optionally sync position if the DB drives layout
                 position: {
