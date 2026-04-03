@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Loader2 } from 'lucide-react';
-import { usePlayerStore } from '@/store/playerStore';
+import { usePlayerStore } from '../store/playerStore';
+import { useSkillStore } from '../store/useSkillStore';
 import { toast } from 'sonner';
 
 // ─── Glitch flicker keyframes ──────────────────────────────────────────────────
@@ -80,7 +81,12 @@ export default function QuestModal() {
     }, 200);
 
     try {
+<<<<<<< HEAD
       const response = await fetch('/api/generate-tree', {
+=======
+      const response = await fetch('https://exwkezfimdfvmaqmdruo.supabase.co/functions/v1/generate-tree', {
+        // ... rest of the code stays the same
+>>>>>>> 4c6b6307533389663c7ca5245caa044dcd86527c
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ goal: goal.trim() }),
@@ -89,7 +95,36 @@ export default function QuestModal() {
       if (!response.ok) throw new Error('Backend failed');
 
       const treeData = await response.json();
-      usePlayerStore.getState().setTreeData(treeData.nodes, treeData.edges);
+
+      // 🚨 NODE FIX: Force Strings, Positions, customSkill type, and default UI props!
+      const safeNodes = (treeData.nodes || []).map((node: any, index: number) => {
+        const fallbackText = node.data?.label || node.label || node.title || node.name || `Skill ${index + 1}`;
+
+        return {
+          ...node,
+          id: String(node.id || `fallback-node-${index}`), // 👈 String forced
+          type: 'customSkill', // 👈 Antigravity's custom UI fix
+          position: node.position || { x: 300, y: index * 180 }, // 👈 Vertical RPG Layout
+          data: {
+            ...node.data,
+            label: fallbackText,
+            borderColor: '#a855f7', // 👈 Fallback property to prevent CustomSkillNode crash
+          }
+        };
+      });
+
+      // 🚨 EDGE FIX: Force Source/Target to be strings and add glowing styles!
+      const safeEdges = (treeData.edges || []).map((edge: any, index: number) => ({
+        ...edge,
+        id: edge.id || `e${edge.source || edge.from}-${edge.target || edge.to}-${index}`,
+        source: String(edge.source || edge.from), // 👈 Forces to string, handles either API format
+        target: String(edge.target || edge.to),   // 👈 Forces to string, handles either API format
+        animated: true,
+        style: { stroke: '#a855f7', strokeWidth: 3 }, // Glowing purple laser edge
+      }));
+
+      // Pass the fully sanitized nodes AND edges to the store
+      useSkillStore.getState().setTree(safeNodes, safeEdges);
 
       clearInterval(progressInterval);
       setProgress(100);
